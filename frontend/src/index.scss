@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;700&display=swap");
+
+@import "./styles/init-panel.scss";
+@import "./styles/button.scss";
+@import "./styles/side-panel.scss";
+@import "./styles/bots.scss";
+@import "./styles/module.scss";
+@import "./styles/colors.scss";
+@import "./styles/check-box.scss";
+
+body,
+html {
+   background: #35393e;
+   color: #ffffffcd;
+   font-family: "Nunito Sans", sans-serif;
+}
