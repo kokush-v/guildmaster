@@ -1,8 +1,8 @@
-import client from "../../bot";
+import bot from "../../bot/bot";
 
 class BotService {
 	async getBotName(): Promise<String> {
-		return client.user?.username as string;
+		return bot.client.user?.username as string;
 	}
 }
 

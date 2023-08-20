@@ -4,8 +4,8 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"bot": "tsx watch bot/index.ts",
-		"api": "nodemon api/server.ts"
+		"bot": "tsx watch services/bot/bot.ts",
+		"api": "nodemon services/api/server.ts"
 	},
 	"keywords": [],
 	"author": "",

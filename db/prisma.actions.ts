@@ -1,12 +1,12 @@
-import { DiscordUsers, PrismaClient } from "@prisma/client";
-import { GuildMember, User } from "discord.js";
+import { Users, PrismaClient } from "@prisma/client";
+import { User } from "discord.js";
 
 const prisma = new PrismaClient();
 
 class PrismaActions {
 	async getAllUsers() {
 		try {
-			const users = prisma.discordUsers.findMany();
+			const users = prisma.users.findMany();
 			await prisma.$disconnect();
 			return users;
 		} catch (error) {
@@ -17,7 +17,7 @@ class PrismaActions {
 	}
 
 	async addUser({ id, username }: User) {
-		await prisma.discordUsers.create({
+		await prisma.users.create({
 			data: {
 				id: id,
 				username: username,
@@ -25,8 +25,8 @@ class PrismaActions {
 		});
 	}
 
-	async getUser(id: string): Promise<DiscordUsers> {
-		return await prisma.discordUsers.findUniqueOrThrow({ where: { id: id } });
+	async getUser(id: string): Promise<Users | null> {
+		return await prisma.users.findUnique({ where: { id: id } });
 	}
 }
 
