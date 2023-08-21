@@ -7,8 +7,78 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Users {
-  id       String   @id @unique
-  username String   @unique
-  joinAt   DateTime @default(now())
+model UsersDB {
+  id       String          @id @unique
+  username String          @unique
+  join_at  DateTime        @default(now())
+  roles    MemberRolesDB[]
+}
+
+model RolesDB {
+  role_id     String          @id
+  guild_id    String
+  role_name   String
+  MemberRoles MemberRolesDB[]
+}
+
+model MemberRolesDB {
+  id       Int      @id @default(autoincrement())
+  user_id  String?
+  roles_id String?
+  Users    UsersDB? @relation(fields: [user_id], references: [id])
+  Roles    RolesDB? @relation(fields: [roles_id], references: [role_id])
+}
+
+model GuildsDB {
+  id                            String   @id
+  name                          String
+  icon                          String?
+  afk_channel_id                String?
+  owner_id                      String
+  joined_at                     DateTime
+  discovery_splash              String?
+  splash                        String?
+  afk_timeout                   Int
+  member_count                  Int
+  verification_level            Int
+  default_message_notifications Int
+  max_presences                 Int?
+  max_members                   Int?
+  nsfw_level                    Int
+  mfa_level                     Int
+  system_channel_id             String?
+  rules_channel_id              String?
+  description                   String?
+  banner                        String?
+  premium_tier                  Int
+  premium_subscription_count    Int?
+  preferred_locale              String
+  public_updates_channel_id     String?
+  permissions                   BigInt?
+}
+
+model ChannelsDB {
+  id                  String  @id
+  guild_id            String
+  name                String
+  topic               String?
+  type                Int
+  nsfw                Boolean @default(false)
+  parent_id           String?
+  rate_limit_per_user Int?
+  flags               Int?
+}
+
+model GuildMembersDB {
+  id            Int       @id @default(autoincrement())
+  guild_id      String
+  user_id       String
+  joined_at     DateTime?
+  nick          String?
+  deaf          Boolean   @default(false)
+  mute          Boolean   @default(false)
+  avatar        String?
+  premium_since DateTime?
+  pending       Boolean   @default(false)
+  permissions   BigInt?
 }
