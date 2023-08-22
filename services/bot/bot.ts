@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits, Guild, Partials } from "discord.js";
+import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
 import botConfig from "./config";
 import handleCommands from "./commands/commands-handler";
 import BotWatcher from "../watchers/bot.watcher";
@@ -20,6 +20,7 @@ class Bot {
 		this.client.on(Events.MessageCreate, handleCommands);
 
 		this.watcher.start();
+
 		this.client.login(botConfig.BOT_TOKEN);
 	}
 }

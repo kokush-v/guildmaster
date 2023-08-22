@@ -7,29 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model UsersDB {
-  id       String          @id @unique
-  username String          @unique
-  join_at  DateTime        @default(now())
-  roles    MemberRolesDB[]
+model users {
+  id       String         @id @unique
+  username String         @unique
+  join_at  DateTime       @default(now())
+  roles    member_roles[]
 }
 
-model RolesDB {
-  role_id     String          @id
-  guild_id    String
-  role_name   String
-  MemberRoles MemberRolesDB[]
+model roles {
+  id           String         @id
+  guild_id     String
+  name         String
+  color        Int
+  member_roles member_roles[]
 }
 
-model MemberRolesDB {
-  id       Int      @id @default(autoincrement())
+model member_roles {
+  id       Int     @id @default(autoincrement())
   user_id  String?
   roles_id String?
-  Users    UsersDB? @relation(fields: [user_id], references: [id])
-  Roles    RolesDB? @relation(fields: [roles_id], references: [role_id])
+  users    users?  @relation(fields: [user_id], references: [id])
+  roles    roles?  @relation(fields: [roles_id], references: [id])
 }
 
-model GuildsDB {
+model guilds {
   id                            String   @id
   name                          String
   icon                          String?
@@ -57,7 +58,7 @@ model GuildsDB {
   permissions                   BigInt?
 }
 
-model ChannelsDB {
+model channels {
   id                  String  @id
   guild_id            String
   name                String
@@ -69,14 +70,13 @@ model ChannelsDB {
   flags               Int?
 }
 
-model GuildMembersDB {
+model guild_members {
   id            Int       @id @default(autoincrement())
   guild_id      String
   user_id       String
   joined_at     DateTime?
   nick          String?
-  deaf          Boolean   @default(false)
-  mute          Boolean   @default(false)
+  ban           Boolean   @default(false)
   avatar        String?
   premium_since DateTime?
   pending       Boolean   @default(false)

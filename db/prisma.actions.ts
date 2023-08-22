@@ -1,16 +1,20 @@
-import { UsersDB, PrismaClient, RolesDB, GuildsDB, ChannelsDB, GuildMembersDB } from "@prisma/client";
+import { users, PrismaClient, roles, guilds, channels, guild_members } from "@prisma/client";
 import { Channel, ChannelType, Guild, GuildMember, Role, User } from "discord.js";
 
 const prisma = new PrismaClient();
 
 class PrismaActions {
+	// Users
+
 	async addUser({ user, roles }: GuildMember) {
-		await prisma.usersDB.create({
+		const filteredRoles = roles.cache.filter((role) => role.name !== "@everyone");
+
+		await prisma.users.create({
 			data: {
 				id: user.id,
 				username: user.username,
 				roles: {
-					create: roles.cache.map((role) => ({
+					create: filteredRoles.map((role) => ({
 						roles_id: role.id,
 					})),
 				},
@@ -22,36 +26,81 @@ class PrismaActions {
 		await prisma.$disconnect();
 	}
 
-	async editUser({ id, username }: User) {
-		await prisma.usersDB.update({ where: { id: id }, data: { username: username } });
+	async updateUser({ id, username }: User) {
+		await prisma.users.update({ where: { id: id }, data: { username: username } });
 		await prisma.$disconnect();
 	}
 
-	async getUser(id: string): Promise<UsersDB | null> {
-		const user = await prisma.usersDB.findUnique({ where: { id: id } });
+	async getUser(id: string): Promise<users | null> {
+		const user = await prisma.users.findUnique({ where: { id: id } });
 		await prisma.$disconnect();
 		return user;
 	}
 
-	async addRole({ id, guild, name }: Role) {
-		await prisma.rolesDB.create({
+	// Role members
+
+	async addRoleMember(roleId: string, memberId: string) {
+		await prisma.member_roles.create({
 			data: {
-				role_id: id,
+				user_id: memberId,
+				roles_id: roleId,
+			},
+		});
+
+		await prisma.$disconnect();
+	}
+
+	async removeRoleMember(id: number) {
+		await prisma.member_roles.delete({ where: { id: id } });
+		await prisma.$disconnect();
+	}
+
+	async getRoleMember(roleId: string, memberId: string) {
+		const roleMember = await prisma.member_roles.findFirst({ where: { roles_id: roleId, user_id: memberId } });
+		await prisma.$disconnect();
+		return roleMember;
+	}
+
+	// Roles
+
+	async addRole({ id, guild, name, color }: Role) {
+		await prisma.roles.create({
+			data: {
+				id: id,
 				guild_id: guild.id,
-				role_name: name,
+				name: name,
+				color: color,
 			},
 		});
 		await prisma.$disconnect();
 	}
 
-	async getRole(id: string): Promise<RolesDB | null> {
-		const role = await prisma.rolesDB.findUnique({ where: { role_id: id } });
+	async getRole(id: string): Promise<roles | null> {
+		const role = await prisma.roles.findUnique({ where: { id: id } });
 		await prisma.$disconnect();
 		return role;
 	}
 
+	async getOldRoles(id: string) {
+		const roles = await prisma.member_roles.findMany({ where: { user_id: id } });
+		await prisma.$disconnect();
+		return roles;
+	}
+
+	async updateRole(role: Role) {
+		await prisma.roles.update({ where: { id: role.id }, data: { name: role.name } });
+		await prisma.$disconnect();
+	}
+
+	async removeRole(role: Role) {
+		await prisma.roles.delete({ where: { id: role.id } });
+		await prisma.$disconnect();
+	}
+
+	// Guilds
+
 	async addGuild(guild: Guild) {
-		await prisma.guildsDB.create({
+		await prisma.guilds.create({
 			data: {
 				id: guild.id,
 				name: guild.name,
@@ -83,8 +132,8 @@ class PrismaActions {
 		await prisma.$disconnect();
 	}
 
-	async getGuild(id: string): Promise<GuildsDB | null> {
-		const guild = await prisma.guildsDB.findUnique({
+	async getGuild(id: string): Promise<guilds | null> {
+		const guild = await prisma.guilds.findUnique({
 			where: {
 				id: id,
 			},
@@ -93,11 +142,52 @@ class PrismaActions {
 		return guild;
 	}
 
+	async updateGuild(guild: Guild) {
+		await prisma.guilds.update({
+			where: { id: guild.id },
+			data: {
+				id: guild.id,
+				name: guild.name,
+				icon: guild.icon,
+				afk_channel_id: guild.afkChannelId,
+				owner_id: guild.ownerId,
+				joined_at: guild.joinedAt,
+				discovery_splash: guild.discoverySplash,
+				splash: guild.splash,
+				afk_timeout: guild.afkTimeout,
+				member_count: guild.memberCount,
+				verification_level: guild.verificationLevel,
+				default_message_notifications: guild.defaultMessageNotifications,
+				max_presences: guild.maximumPresences,
+				max_members: guild.maximumMembers,
+				nsfw_level: guild.nsfwLevel,
+				mfa_level: guild.mfaLevel,
+				system_channel_id: guild.systemChannelId,
+				rules_channel_id: guild.rulesChannelId,
+				description: guild.description,
+				banner: guild.banner,
+				premium_tier: guild.premiumTier,
+				premium_subscription_count: guild.premiumSubscriptionCount,
+				preferred_locale: guild.preferredLocale,
+				public_updates_channel_id: guild.publicUpdatesChannelId,
+				permissions: guild.members.me?.permissions.bitfield,
+			},
+		});
+		await prisma.$disconnect();
+	}
+
+	async removeGuild(guild: Guild) {
+		await prisma.guilds.delete({ where: { id: guild.id } });
+		await prisma.$disconnect();
+	}
+
+	// Channels
+
 	async addChannel(channel: Channel) {
 		try {
 			switch (channel.type) {
 				case ChannelType.GuildText:
-					await prisma.channelsDB.create({
+					await prisma.channels.create({
 						data: {
 							id: channel.id,
 							guild_id: channel.guild.id,
@@ -111,7 +201,7 @@ class PrismaActions {
 						},
 					});
 				case ChannelType.GuildVoice:
-					await prisma.channelsDB.create({
+					await prisma.channels.create({
 						data: {
 							id: channel.id,
 							guild_id: channel.guild.id,
@@ -129,8 +219,8 @@ class PrismaActions {
 		await prisma.$disconnect();
 	}
 
-	async getChannel(id: string): Promise<ChannelsDB | null> {
-		const channel = await prisma.channelsDB.findUnique({
+	async getChannel(id: string): Promise<channels | null> {
+		const channel = await prisma.channels.findUnique({
 			where: {
 				id: id,
 			},
@@ -139,15 +229,66 @@ class PrismaActions {
 		return channel;
 	}
 
+	async updateChannel(channel: Channel) {
+		try {
+			switch (channel.type) {
+				case ChannelType.GuildText:
+					await prisma.channels.update({
+						where: {
+							id: channel.id,
+						},
+						data: {
+							id: channel.id,
+							guild_id: channel.guild.id,
+							name: channel.name,
+							topic: channel.topic,
+							type: channel.type,
+							nsfw: channel.nsfw,
+							parent_id: channel.parentId,
+							rate_limit_per_user: channel.rateLimitPerUser,
+							flags: channel.flags.bitfield,
+						},
+					});
+				case ChannelType.GuildVoice:
+					await prisma.channels.update({
+						where: {
+							id: channel.id,
+						},
+						data: {
+							id: channel.id,
+							guild_id: channel.guild.id,
+							name: channel.name,
+							type: channel.type,
+							nsfw: channel.nsfw,
+							parent_id: channel.parentId,
+							rate_limit_per_user: channel.rateLimitPerUser,
+							flags: channel.flags.bitfield,
+						},
+					});
+			}
+		} catch (error) {}
+
+		await prisma.$disconnect();
+	}
+
+	async removeChannel(channel: Channel) {
+		await prisma.channels.delete({
+			where: {
+				id: channel.id,
+			},
+		});
+		await prisma.$disconnect();
+	}
+
+	// Members
+
 	async addMember(member: GuildMember) {
-		await prisma.guildMembersDB.create({
+		await prisma.guild_members.create({
 			data: {
 				guild_id: member.guild.id,
 				user_id: member.id,
 				joined_at: member.joinedAt,
 				nick: member.nickname,
-				deaf: member.voice.deaf ? member.voice.deaf : false,
-				mute: member.voice.mute ? member.voice.mute : false,
 				avatar: member.avatar,
 				premium_since: member.premiumSince,
 				pending: member.pending,
@@ -156,8 +297,8 @@ class PrismaActions {
 		});
 	}
 
-	async getMember(guild_id: string, user_id: string): Promise<GuildMembersDB | null> {
-		const member = await prisma.guildMembersDB.findFirst({
+	async getMember(guild_id: string, user_id: string): Promise<guild_members | null> {
+		const member = await prisma.guild_members.findFirst({
 			where: {
 				user_id: user_id,
 				guild_id: guild_id,
@@ -165,6 +306,58 @@ class PrismaActions {
 		});
 		await prisma.$disconnect();
 		return member;
+	}
+
+	async updateMember(id: number, member: GuildMember) {
+		await prisma.guild_members.update({
+			where: {
+				id: id,
+			},
+			data: {
+				guild_id: member.guild.id,
+				user_id: member.id,
+				joined_at: member.joinedAt,
+				nick: member.nickname,
+				avatar: member.avatar,
+				premium_since: member.premiumSince,
+				pending: member.pending,
+				permissions: member.permissions.bitfield,
+			},
+		});
+		await prisma.$disconnect();
+	}
+
+	async banMember(id: number) {
+		await prisma.guild_members.update({
+			where: {
+				id: id,
+			},
+			data: {
+				ban: true,
+			},
+		});
+		await prisma.$disconnect();
+	}
+
+	async unBanMember(id: number) {
+		await prisma.guild_members.update({
+			where: {
+				id: id,
+			},
+			data: {
+				ban: false,
+			},
+		});
+		await prisma.$disconnect();
+	}
+
+	async removeMember(id: number) {
+		await prisma.guild_members.delete({
+			where: {
+				id: id,
+			},
+		});
+		await prisma.$disconnect();
 	}
 }
 
