@@ -1,16 +1,28 @@
 import { users, PrismaClient, roles, guilds, channels, guild_members } from "@prisma/client";
 import { Channel, ChannelType, Guild, GuildMember, Role, User } from "discord.js";
+import { create } from "ts-node";
 
 const prisma = new PrismaClient();
 
 class PrismaActions {
 	// Users
 
-	async addUser({ user, roles }: GuildMember) {
+	async upsertUser({ user, roles }: GuildMember) {
 		const filteredRoles = roles.cache.filter((role) => role.name !== "@everyone");
 
-		await prisma.users.create({
-			data: {
+		await prisma.users.upsert({
+			where: {
+				id: user.id,
+			},
+			update: {
+				username: user.username,
+				roles: {
+					create: filteredRoles.map((role) => ({
+						roles_id: role.id,
+					})),
+				},
+			},
+			create: {
 				id: user.id,
 				username: user.username,
 				roles: {
@@ -63,9 +75,16 @@ class PrismaActions {
 
 	// Roles
 
-	async addRole({ id, guild, name, color }: Role) {
-		await prisma.roles.create({
-			data: {
+	async upsertRole({ id, guild, name, color }: Role) {
+		await prisma.roles.upsert({
+			where: {
+				id: id,
+			},
+			update: {
+				name: name,
+				color: color,
+			},
+			create: {
 				id: id,
 				guild_id: guild.id,
 				name: name,
@@ -87,11 +106,6 @@ class PrismaActions {
 		return roles;
 	}
 
-	async updateRole(role: Role) {
-		await prisma.roles.update({ where: { id: role.id }, data: { name: role.name } });
-		await prisma.$disconnect();
-	}
-
 	async removeRole(role: Role) {
 		await prisma.roles.delete({ where: { id: role.id } });
 		await prisma.$disconnect();
@@ -99,10 +113,39 @@ class PrismaActions {
 
 	// Guilds
 
-	async addGuild(guild: Guild) {
-		await prisma.guilds.create({
-			data: {
+	async upsertGuild(guild: Guild) {
+		await prisma.guilds.upsert({
+			where: {
 				id: guild.id,
+			},
+			create: {
+				id: guild.id,
+				name: guild.name,
+				icon: guild.icon,
+				afk_channel_id: guild.afkChannelId,
+				owner_id: guild.ownerId,
+				joined_at: guild.joinedAt,
+				discovery_splash: guild.discoverySplash,
+				splash: guild.splash,
+				afk_timeout: guild.afkTimeout,
+				member_count: guild.memberCount,
+				verification_level: guild.verificationLevel,
+				default_message_notifications: guild.defaultMessageNotifications,
+				max_presences: guild.maximumPresences,
+				max_members: guild.maximumMembers,
+				nsfw_level: guild.nsfwLevel,
+				mfa_level: guild.mfaLevel,
+				system_channel_id: guild.systemChannelId,
+				rules_channel_id: guild.rulesChannelId,
+				description: guild.description,
+				banner: guild.banner,
+				premium_tier: guild.premiumTier,
+				premium_subscription_count: guild.premiumSubscriptionCount,
+				preferred_locale: guild.preferredLocale,
+				public_updates_channel_id: guild.publicUpdatesChannelId,
+				permissions: guild.members.me?.permissions.bitfield,
+			},
+			update: {
 				name: guild.name,
 				icon: guild.icon,
 				afk_channel_id: guild.afkChannelId,
@@ -142,40 +185,6 @@ class PrismaActions {
 		return guild;
 	}
 
-	async updateGuild(guild: Guild) {
-		await prisma.guilds.update({
-			where: { id: guild.id },
-			data: {
-				id: guild.id,
-				name: guild.name,
-				icon: guild.icon,
-				afk_channel_id: guild.afkChannelId,
-				owner_id: guild.ownerId,
-				joined_at: guild.joinedAt,
-				discovery_splash: guild.discoverySplash,
-				splash: guild.splash,
-				afk_timeout: guild.afkTimeout,
-				member_count: guild.memberCount,
-				verification_level: guild.verificationLevel,
-				default_message_notifications: guild.defaultMessageNotifications,
-				max_presences: guild.maximumPresences,
-				max_members: guild.maximumMembers,
-				nsfw_level: guild.nsfwLevel,
-				mfa_level: guild.mfaLevel,
-				system_channel_id: guild.systemChannelId,
-				rules_channel_id: guild.rulesChannelId,
-				description: guild.description,
-				banner: guild.banner,
-				premium_tier: guild.premiumTier,
-				premium_subscription_count: guild.premiumSubscriptionCount,
-				preferred_locale: guild.preferredLocale,
-				public_updates_channel_id: guild.publicUpdatesChannelId,
-				permissions: guild.members.me?.permissions.bitfield,
-			},
-		});
-		await prisma.$disconnect();
-	}
-
 	async removeGuild(guild: Guild) {
 		await prisma.guilds.delete({ where: { id: guild.id } });
 		await prisma.$disconnect();
@@ -183,12 +192,15 @@ class PrismaActions {
 
 	// Channels
 
-	async addChannel(channel: Channel) {
+	async upsertChannel(channel: Channel) {
 		try {
 			switch (channel.type) {
 				case ChannelType.GuildText:
-					await prisma.channels.create({
-						data: {
+					await prisma.channels.upsert({
+						where: {
+							id: channel.id,
+						},
+						create: {
 							id: channel.id,
 							guild_id: channel.guild.id,
 							name: channel.name,
@@ -199,12 +211,32 @@ class PrismaActions {
 							rate_limit_per_user: channel.rateLimitPerUser,
 							flags: channel.flags.bitfield,
 						},
+						update: {
+							name: channel.name,
+							topic: channel.topic,
+							type: channel.type,
+							nsfw: channel.nsfw,
+							parent_id: channel.parentId,
+							rate_limit_per_user: channel.rateLimitPerUser,
+							flags: channel.flags.bitfield,
+						},
 					});
 				case ChannelType.GuildVoice:
-					await prisma.channels.create({
-						data: {
+					await prisma.channels.upsert({
+						where: {
+							id: channel.id,
+						},
+						create: {
 							id: channel.id,
 							guild_id: channel.guild.id,
+							name: channel.name,
+							type: channel.type,
+							nsfw: channel.nsfw,
+							parent_id: channel.parentId,
+							rate_limit_per_user: channel.rateLimitPerUser,
+							flags: channel.flags.bitfield,
+						},
+						update: {
 							name: channel.name,
 							type: channel.type,
 							nsfw: channel.nsfw,
@@ -229,48 +261,6 @@ class PrismaActions {
 		return channel;
 	}
 
-	async updateChannel(channel: Channel) {
-		try {
-			switch (channel.type) {
-				case ChannelType.GuildText:
-					await prisma.channels.update({
-						where: {
-							id: channel.id,
-						},
-						data: {
-							id: channel.id,
-							guild_id: channel.guild.id,
-							name: channel.name,
-							topic: channel.topic,
-							type: channel.type,
-							nsfw: channel.nsfw,
-							parent_id: channel.parentId,
-							rate_limit_per_user: channel.rateLimitPerUser,
-							flags: channel.flags.bitfield,
-						},
-					});
-				case ChannelType.GuildVoice:
-					await prisma.channels.update({
-						where: {
-							id: channel.id,
-						},
-						data: {
-							id: channel.id,
-							guild_id: channel.guild.id,
-							name: channel.name,
-							type: channel.type,
-							nsfw: channel.nsfw,
-							parent_id: channel.parentId,
-							rate_limit_per_user: channel.rateLimitPerUser,
-							flags: channel.flags.bitfield,
-						},
-					});
-			}
-		} catch (error) {}
-
-		await prisma.$disconnect();
-	}
-
 	async removeChannel(channel: Channel) {
 		await prisma.channels.delete({
 			where: {
@@ -282,11 +272,22 @@ class PrismaActions {
 
 	// Members
 
-	async addMember(member: GuildMember) {
-		await prisma.guild_members.create({
-			data: {
+	async upsertMember(member: GuildMember, id: number) {
+		await prisma.guild_members.upsert({
+			where: {
+				id: id,
+			},
+			create: {
 				guild_id: member.guild.id,
-				user_id: member.id,
+				user_id: member.user.id,
+				joined_at: member.joinedAt,
+				nick: member.nickname,
+				avatar: member.avatar,
+				premium_since: member.premiumSince,
+				pending: member.pending,
+				permissions: member.permissions.bitfield,
+			},
+			update: {
 				joined_at: member.joinedAt,
 				nick: member.nickname,
 				avatar: member.avatar,

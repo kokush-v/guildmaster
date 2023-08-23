@@ -1,5 +1,10 @@
-import { ChannelType, Client, Events, Guild, GuildMember } from "discord.js";
-import prismaService from "../../db/prisma.service";
+import { ChannelType, Client, Events, Guild, GuildMember, Role } from "discord.js";
+import rolesService from "../../db/services/roles.service";
+import userService from "../../db/services/user.service";
+import guildService from "../../db/services/guild.service";
+import channelService from "../../db/services/channel.service";
+import memberService from "../../db/services/member.service";
+import memberRolesService from "../../db/services/member-roles.service";
 
 class BotWatcher {
 	botClient: Client;
@@ -15,42 +20,47 @@ class BotWatcher {
 			console.log("Discord bot is ready!");
 			const guilds = bot.guilds.cache.map((guild) => guild);
 
-			prismaService.guildRolesScan(guilds);
-			prismaService.guildUsersScan(guilds);
+			rolesService.scan(guilds);
+			userService.scan(guilds);
+			guildService.scan(guilds);
+			memberService.scan(guilds);
+			memberRolesService.scan(guilds);
+			channelService.scan(guilds);
 		});
 
 		// Guild Events
 
 		this.botClient.on(Events.GuildCreate, (guild) => {
-			prismaService.guildUsersScan([guild]);
-			prismaService.guildRolesScan([guild]);
-			prismaService.addNewGuild(guild);
-			prismaService.addNewChannels(guild);
-			prismaService.addNewMembers(guild);
+			userService.scan([guild]);
+			rolesService.scan([guild]);
+			guildService.addNewGuild(guild);
+			channelService.scan([guild]);
+			memberService.scan([guild]);
 		});
 
 		this.botClient.on(Events.GuildUpdate, (oldGuild, newGuild) => {
-			prismaService.updateGuild(newGuild);
+			guildService.addNewGuild(newGuild);
 			console.log(`guild ${newGuild.name} was edited`);
 		});
 
 		this.botClient.on(Events.GuildDelete, (guild) => {
-			prismaService.removeGuild(guild);
+			guildService.removeGuild(guild);
 			console.log(`guild ${guild.name} was removed`);
 		});
 
 		// Member events
 
 		this.botClient.on(Events.GuildMemberAdd, async (member) => {
-			prismaService.addNewMember(member);
-			prismaService.addNewUser(member);
-			prismaService.setOldRoles(member);
+			memberService.addNewMember(member);
+			userService.addNewUser(member);
+			rolesService.setOldRoles(member);
+			member.roles.add(member.guild.roles.cache.find((role) => role.name === "User") as Role);
 			console.log(`new member ${member.user.username} just join guild ${member.guild.name}`);
 		});
 
 		this.botClient.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
-			prismaService.updateMember(newMember);
-			prismaService.checkRoleMembers(newMember, oldMember as GuildMember);
+			memberService.updateMember(newMember);
+			memberRolesService.checkRoleMembers(newMember, oldMember as GuildMember);
 			console.log(`user ${newMember.user.username} was edited`);
 		});
 
@@ -67,27 +77,27 @@ class BotWatcher {
 		// User events
 
 		this.botClient.on(Events.UserUpdate, (oldUser, newUser) => {
-			prismaService.updateUser(newUser);
+			userService.updateUser(newUser);
 			console.log(`user ${newUser.username} was edited`);
 		});
 
 		// Channel events
 
 		this.botClient.on(Events.ChannelCreate, (channel) => {
-			prismaService.addNewChannel(channel);
+			channelService.addNewChannel(channel);
 			console.log(`channel ${channel.name} was created `);
 		});
 
 		this.botClient.on(Events.ChannelUpdate, (oldChannel, newChannel) => {
 			if (newChannel.type === ChannelType.GuildText || newChannel.type === ChannelType.GuildVoice) {
-				prismaService.updateChannel(newChannel);
+				channelService.addNewChannel(newChannel);
 				console.log(`channel ${newChannel.name} was updated `);
 			}
 		});
 
 		this.botClient.on(Events.ChannelDelete, (channel) => {
 			if (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildVoice) {
-				prismaService.removeChannel(channel);
+				channelService.removeChannel(channel);
 				console.log(`channel ${channel.name} was removed `);
 			}
 		});
@@ -95,15 +105,15 @@ class BotWatcher {
 		// Role events
 
 		this.botClient.on(Events.GuildRoleCreate, (role) => {
-			prismaService.addNewRole(role);
+			rolesService.addNewRole(role);
 			console.log(`role ${role.name} was added`);
 		});
 		this.botClient.on(Events.GuildRoleUpdate, (oldRole, newRole) => {
-			prismaService.updateRole(newRole);
+			rolesService.addNewRole(newRole);
 			console.log(`role ${newRole.name} was updated`);
 		});
 		this.botClient.on(Events.GuildRoleDelete, (role) => {
-			prismaService.removeRole(role);
+			rolesService.removeRole(role);
 			console.log(`role ${role.name} was removed`);
 		});
 	}
