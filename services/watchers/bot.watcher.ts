@@ -1,4 +1,4 @@
-import { ChannelType, Client, Events, Guild, GuildMember, Role } from "discord.js";
+import { ChannelType, Client, Events, GuildMember, Role } from "discord.js";
 import rolesService from "../../db/services/roles.service";
 import userService from "../../db/services/user.service";
 import guildService from "../../db/services/guild.service";
@@ -54,7 +54,7 @@ class BotWatcher {
 			memberService.addNewMember(member);
 			userService.addNewUser(member);
 			rolesService.setOldRoles(member);
-			member.roles.add(member.guild.roles.cache.find((role) => role.name === "User") as Role);
+			member.roles.add(member.guild.roles.cache.find((role) => role.name === "Users") as Role);
 			console.log(`new member ${member.user.username} just join guild ${member.guild.name}`);
 		});
 
