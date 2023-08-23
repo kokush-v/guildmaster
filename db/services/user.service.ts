@@ -23,8 +23,6 @@ class UserService {
 		const getUser = await prismaActions.getUser(user.id);
 		if (getUser) {
 			await prismaActions.updateUser(user);
-		} else {
-			console.log("no user");
 		}
 	}
 }

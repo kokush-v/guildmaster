@@ -76,7 +76,7 @@ class BotWatcher {
 
 		// User events
 
-		this.botClient.on(Events.UserUpdate, (oldUser, newUser) => {
+		this.botClient.on(Events.UserUpdate, async (oldUser, newUser) => {
 			userService.updateUser(newUser);
 			console.log(`user ${newUser.username} was edited`);
 		});

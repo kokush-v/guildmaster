@@ -11,9 +11,8 @@ class GuildService {
 		console.log("scanning for roles guilds");
 	}
 
-	async addNewGuild(guild: Guild): Promise<guilds | null> {
+	async addNewGuild(guild: Guild) {
 		await prismaActions.upsertGuild(guild);
-		return await prismaActions.getGuild(guild.id);
 	}
 
 	async removeGuild(guild: Guild) {

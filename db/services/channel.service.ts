@@ -10,19 +10,15 @@ class ChannelService {
 			const channels = await guild.channels.fetch();
 
 			channels.map(async (channel) => {
-				if (channel)
-					if (!(await prismaActions.getChannel(channel.id))) {
-						await prismaActions.upsertChannel(channel);
-					}
+				if (channel) await prismaActions.upsertChannel(channel);
 			});
 		});
 
 		console.log("scanning for channels finished");
 	}
 
-	async addNewChannel(channel: Channel): Promise<channels | null> {
+	async addNewChannel(channel: Channel) {
 		await prismaActions.upsertChannel(channel);
-		return await prismaActions.getChannel(channel.id);
 	}
 
 	async removeChannel(channel: Channel) {

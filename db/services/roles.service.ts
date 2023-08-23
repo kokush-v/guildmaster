@@ -8,10 +8,8 @@ class RolesService {
 			let roles = guild?.roles.cache.map((role) => role);
 
 			roles.forEach(async (role) => {
-				if (!(await prismaActions.getRole(role.id))) {
-					if (role.name === "@everyone") return;
-					prismaActions.upsertRole(role);
-				}
+				if (role.name === "@everyone") return;
+				prismaActions.upsertRole(role);
 			});
 		});
 		console.log("scanning for roles finished");

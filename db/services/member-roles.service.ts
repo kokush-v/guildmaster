@@ -9,10 +9,8 @@ class MemberRoleService {
 			let count = 0;
 
 			users.forEach(async (userMebmer) => {
-				if (!(await prismaActions.getUser(userMebmer.id))) {
-					count++;
-					prismaActions.upsertUser(userMebmer);
-				}
+				count++;
+				prismaActions.upsertUser(userMebmer);
 			});
 		});
 		console.log("scanning for role members finished");

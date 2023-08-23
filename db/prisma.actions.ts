@@ -38,8 +38,15 @@ class PrismaActions {
 		await prisma.$disconnect();
 	}
 
-	async updateUser({ id, username }: User) {
-		await prisma.users.update({ where: { id: id }, data: { username: username } });
+	async updateUser(user: User) {
+		await prisma.users.update({
+			where: {
+				id: user.id,
+			},
+			data: {
+				username: user.username,
+			},
+		});
 		await prisma.$disconnect();
 	}
 
