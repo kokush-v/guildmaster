@@ -8,26 +8,22 @@ datasource db {
 }
 
 model users {
-  id       String         @id @unique
-  username String         @unique
-  join_at  DateTime       @default(now())
-  roles    member_roles[]
+  id       String   @id @unique
+  username String   @unique
+  join_at  DateTime @default(now())
 }
 
 model roles {
-  id           String         @id
-  guild_id     String
-  name         String
-  color        Int
-  member_roles member_roles[]
+  id       String @id
+  guild_id String
+  name     String
+  color    Int
 }
 
 model member_roles {
   id       Int     @id @default(autoincrement())
   user_id  String?
   roles_id String?
-  users    users?  @relation(fields: [user_id], references: [id])
-  roles    roles?  @relation(fields: [roles_id], references: [id])
 }
 
 model guilds {

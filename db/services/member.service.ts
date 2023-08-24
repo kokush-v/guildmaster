@@ -14,7 +14,7 @@ class MembersService {
 					if (id) id = member?.id as number;
 				});
 
-				await prismaActions.upsertMember(member, id);
+				prismaActions.upsertMember(member, id);
 			});
 		});
 
@@ -28,13 +28,13 @@ class MembersService {
 			if (id) id = member?.id as number;
 		});
 
-		await prismaActions.upsertMember(member, id);
+		prismaActions.upsertMember(member, id);
 	}
 
 	async updateMember(member: GuildMember) {
 		const getUser = await prismaActions.getMember(member.guild.id, member.id);
 		if (getUser) {
-			await prismaActions.updateMember(getUser.id, member);
+			prismaActions.updateMember(getUser.id, member);
 		} else {
 			console.log("no user");
 		}

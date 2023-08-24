@@ -1,16 +1,20 @@
-import { GuildMember, Guild } from "discord.js";
+import { Guild, GuildMember } from "discord.js";
 import prismaActions from "../prisma.actions";
 
 class MemberRoleService {
 	async scan(guilds: Guild[]) {
 		console.log("scanning for new role members");
 		guilds.forEach(async (guild) => {
-			let users = await guild?.members.fetch();
-			let count = 0;
+			let members = await guild?.members.fetch();
+			members.forEach((member) => {
+				member.roles.cache.forEach(async (role) => {
+					let id: number = -1;
 
-			users.forEach(async (userMebmer) => {
-				count++;
-				prismaActions.upsertUser(userMebmer);
+					await prismaActions.getRoleMember(role.id, member.id).then((roleMember) => {
+						if (roleMember?.id) id = roleMember?.id as number;
+					});
+					prismaActions.addRoleMember(id, role.id, member.id);
+				});
 			});
 		});
 		console.log("scanning for role members finished");
@@ -34,9 +38,12 @@ class MemberRoleService {
 	}
 
 	async addNewRoleMember(roleId: string, memberId: string) {
-		if (!(await prismaActions.getRoleMember(roleId, memberId))) {
-			prismaActions.addRoleMember(roleId, memberId);
-		}
+		let id: number = -1;
+
+		await prismaActions.getRoleMember(roleId, memberId).then((roleMember) => {
+			if (roleMember?.id) id = roleMember?.id as number;
+		});
+		prismaActions.addRoleMember(id, roleId, memberId);
 	}
 	async removeRoleMember(roleId: string, memberId: string) {
 		const roleMember = await prismaActions.getRoleMember(roleId, memberId);

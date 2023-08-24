@@ -10,7 +10,7 @@ class ChannelService {
 			const channels = await guild.channels.fetch();
 
 			channels.map(async (channel) => {
-				if (channel) await prismaActions.upsertChannel(channel);
+				if (channel) prismaActions.upsertChannel(channel);
 			});
 		});
 
@@ -18,7 +18,7 @@ class ChannelService {
 	}
 
 	async addNewChannel(channel: Channel) {
-		await prismaActions.upsertChannel(channel);
+		prismaActions.upsertChannel(channel);
 	}
 
 	async removeChannel(channel: Channel) {

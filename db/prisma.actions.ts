@@ -1,6 +1,5 @@
 import { users, PrismaClient, roles, guilds, channels, guild_members } from "@prisma/client";
 import { Channel, ChannelType, Guild, GuildMember, Role, User } from "discord.js";
-import { create } from "ts-node";
 
 const prisma = new PrismaClient();
 
@@ -8,31 +7,16 @@ class PrismaActions {
 	// Users
 
 	async upsertUser({ user, roles }: GuildMember) {
-		const filteredRoles = roles.cache.filter((role) => role.name !== "@everyone");
-
 		await prisma.users.upsert({
 			where: {
 				id: user.id,
 			},
 			update: {
 				username: user.username,
-				roles: {
-					create: filteredRoles.map((role) => ({
-						roles_id: role.id,
-					})),
-				},
 			},
 			create: {
 				id: user.id,
 				username: user.username,
-				roles: {
-					create: filteredRoles.map((role) => ({
-						roles_id: role.id,
-					})),
-				},
-			},
-			include: {
-				roles: true,
 			},
 		});
 		await prisma.$disconnect();
@@ -58,9 +42,15 @@ class PrismaActions {
 
 	// Role members
 
-	async addRoleMember(roleId: string, memberId: string) {
-		await prisma.member_roles.create({
-			data: {
+	async addRoleMember(id: number, roleId: string, memberId: string) {
+		await prisma.member_roles.upsert({
+			where: { id: id },
+
+			create: {
+				user_id: memberId,
+				roles_id: roleId,
+			},
+			update: {
 				user_id: memberId,
 				roles_id: roleId,
 			},
@@ -68,7 +58,6 @@ class PrismaActions {
 
 		await prisma.$disconnect();
 	}
-
 	async removeRoleMember(id: number) {
 		await prisma.member_roles.delete({ where: { id: id } });
 		await prisma.$disconnect();
